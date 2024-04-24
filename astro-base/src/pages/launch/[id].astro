@@ -1,0 +1,62 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getLatestLaunches } from "../../services/spacex";
+import { getLaunchBy } from "../../services/spacex";
+
+//Si quiero usar estas rutas como hybrid (en el server sin el static)
+// export const prerender = false;
+
+const { id } = Astro.params;
+
+// if (!id) {
+//   Astro.redirect("/"); //Sólo para el servidor
+// }
+
+// if (id) {
+//   const { data } = await getLaunchBy({ id });
+// }
+
+let launch;
+if (id) {
+  launch = await getLaunchBy({ id });
+}
+
+//Astro por defecto genera rutas estáticas, por lo tanto, tenemos que decirle qué rutas quieremos que genere...
+//Si de antemos sabemos todas las rutas a las que accedería nuestro cliente, podríamos especificarlo en la función de abajo (si son)
+// export const getStaticPaths = () => {
+//Sólo funciona para esta ruta, el resto no
+//   return [{ params: { id: "5eb87cd9ffd86e000604b32a" } }];
+// };
+
+/**
+ 
+Este acercamiento es bueno, si las rutas son limitadas (no infinitas como podría ser en las redes sociales)
+**Si lo hacemos con el ServerSide-Rendering, no haría falta declarar esta función
+ */
+export const getStaticPaths = async () => {
+  //Llamar a una Api externa para saber todas las ids que necesitamos para crear las rutas
+  //En tiempo de COMPILACIÓN, es decir, rutas limitas que tiene nuestro deploy
+
+  const launches = await getLatestLaunches();
+
+  return launches.map((launchId) => ({
+    params: { id: launchId.id },
+  }));
+};
+
+// console.log(launch);
+---
+
+<Layout title=`Launch nº: ${id}`>
+  <article class="flex flex-col items-center gap-y-4 mt-3">
+    <img
+      class="w-52 h-auto"
+      src={launch?.links?.patch.small}
+      alt={launch?.name}
+    />
+    <h2 class="text-4xl text-white font-bold">
+      Launch #{launch?.flight_number}
+    </h2>
+    <p>{launch?.details}</p>
+  </article>
+</Layout>
